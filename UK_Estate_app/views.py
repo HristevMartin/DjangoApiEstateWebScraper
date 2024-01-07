@@ -5,7 +5,6 @@ from django.db.models.functions import Cast
 from rest_framework import generics, status
 from rest_framework.generics import ListCreateAPIView, ListAPIView
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from UK_Estate_app.models import Sample, Inquiry3
@@ -105,3 +104,41 @@ class InquiryCreateView(generics.CreateAPIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+from google.cloud import dialogflow_v2 as dialogflow
+from rest_framework.decorators import api_view
+from django.http import JsonResponse
+from rest_framework.response import Response
+
+
+@api_view(['POST'])
+def dialogflow_request(request):
+    # Initialize Dialogflow client
+    project_id = 'my-demo-402415'
+
+    session_id = str(request.data['user_id']) + 'random'
+
+    session_client = dialogflow.SessionsClient()
+    session = session_client.session_path(project_id, session_id)
+
+    # Get the message from the POST request made by the frontend
+    user_question = request.data['message']
+    text_input = dialogflow.types.TextInput(text=user_question, language_code='en')
+    query_input = dialogflow.types.QueryInput(text=text_input)
+
+    try:
+        # Send the text to Dialogflow's session client
+        response = session_client.detect_intent(session=session, query_input=query_input)
+        # Fetch the response from Dialogflow
+        reply = response.query_result.fulfillment_text
+
+        # Return the reply to the frontend
+        return JsonResponse([
+            {'reply': user_question, 'sender': 'user'},
+            {'bot_reply': reply, 'sender': 'bot'}
+        ],
+            safe=False)
+
+    except Exception as e:
+        return Response(str(e), status=400)

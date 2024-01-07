@@ -7,7 +7,7 @@ from UK_Estate_app.views import (
     ItemDetailView,
     SortAreas,
     UniqueAreas,
-    InquiryCreateView,
+    InquiryCreateView, dialogflow_request,
 )
 
 urlpatterns = (
@@ -22,4 +22,5 @@ urlpatterns = (
     path("sort-areas/", SortAreas.as_view(), name="unique-areas"),
     path("unique-areas/", UniqueAreas.as_view(), name="unique-areas"),
     path("inquery_create/", InquiryCreateView.as_view(), name="inquery_view"),
+    path('chatbot/', dialogflow_request, name='dialogflow_request'),
 )
