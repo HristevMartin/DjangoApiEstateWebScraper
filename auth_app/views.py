@@ -3,6 +3,8 @@ from tokenize import TokenError
 
 import jwt
 from django.contrib.auth.models import User
+from auth_app.models import CustomUser
+
 from django.utils import timezone
 from google.auth.transport import requests
 from google.oauth2 import id_token
@@ -52,10 +54,15 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
         try:
             serializer.is_valid(raise_exception=True)
+
         except TokenError as e:
             raise InvalidToken(e.args[0])
 
-        user = User.objects.get(username=request.data["username"])
+        except Exception as e:
+            print("error", e)
+            raise InvalidToken(e.args[0])
+
+        user = CustomUser.objects.get(email=request.data["email"])
 
         return Response(
             {
@@ -76,14 +83,16 @@ def google_auth(request):
         idinfo = id_token.verify_oauth2_token(
             google_token,
             requests.Request(),
-            "948437153038-ji2e0m83j882bsk3vchgrfksl08ds6o4.apps.googleusercontent.com",
+            "419141935816-l55gn89pm881kmsv0q82at4iga8a6fkh.apps.googleusercontent.com",
         )
         email = idinfo["email"]
 
         # Find or create user
-        user, created = User.objects.get_or_create(
-            email=email, defaults={"username": email}
-        )
+        # user, created = User.objects.get_or_create(
+        #     email=email, defaults={"username": email}
+        # )
+
+        user, created = CustomUser.objects.get_or_create(email=email)
 
         # Issue custom tokens
         refresh = RefreshToken.for_user(user)
@@ -99,10 +108,11 @@ def google_auth(request):
 
         return Response(data_to_return, status=status.HTTP_200_OK)
 
-    except ValueError:
-        # Invalid token
-        return Response({"error": "Google token validation failed"}, status=400)
-
+    # except ValueError:
+    #     # Invalid token
+    #     return Response({"error": "Google token validation failed"}, status=400)
+    except Exception as ex:
+        print('ex', ex)
 
 class LogoutAPIView(APIView):
     permission_classes = [IsAuthenticated]

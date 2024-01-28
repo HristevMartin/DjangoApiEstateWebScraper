@@ -1,7 +1,7 @@
 from django.db.models import F
 from django.db.models import FloatField
 from django.db.models.expressions import Func
-from django.db.models.functions import Cast
+from django.db.models.functions import Cast, Coalesce
 from rest_framework import generics, status
 from rest_framework.generics import ListCreateAPIView, ListAPIView
 from rest_framework.permissions import IsAuthenticated
@@ -21,7 +21,7 @@ from .pagination import StandardResultsSetPagination
 class SampleApiView(ListCreateAPIView):
     queryset = Sample.objects.all()
     serializer_class = SampleSerializer
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
 
 class PropertyApiView(ListCreateAPIView):
@@ -54,6 +54,15 @@ class PropertyApiViewPagination(ListCreateAPIView):
             price_as_float=Cast(Replace("price_per_week"), FloatField())
         )
 
+        # queryset = Property.objects.annotate(
+        #     cleaned_price_per_week=Cast(Replace("price_per_week"), FloatField()),
+        #     cleaned_price=Cast(
+        #         Replace("price"),
+        #         FloatField()
+        #     ),
+        #     price_as_float = Coalesce('cleaned_price_per_week', 'cleaned_price')
+        # )
+
         # Filter by area
         if area_filter:
             queryset = queryset.filter(address__icontains=area_filter)
@@ -75,6 +84,12 @@ class PropertyApiViewPagination(ListCreateAPIView):
 class ItemDetailView(generics.RetrieveAPIView):
     queryset = Property.objects.all()
     serializer_class = PropertyDetailSerializer
+
+#     overwrite the get method to see the results send to the client
+    def get(self, request, *args, **kwargs):
+        response = super().get(request, *args, **kwargs)
+        print(response.data)
+        return response
 
 
 from rest_framework.filters import OrderingFilter
