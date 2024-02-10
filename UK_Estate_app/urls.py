@@ -5,9 +5,8 @@ from UK_Estate_app.views import (
     PropertyApiView,
     PropertyApiViewPagination,
     ItemDetailView,
-    SortAreas,
     UniqueAreas,
-    InquiryCreateView, dialogflow_request,
+    InquiryCreateView, dialogflow_request, UniqueCountry, GetPriceRanges,
 )
 
 urlpatterns = (
@@ -19,8 +18,9 @@ urlpatterns = (
         name="property-pagination",
     ),
     path("items/<int:pk>/", ItemDetailView.as_view(), name="item-detail"),
-    path("sort-areas/", SortAreas.as_view(), name="unique-areas"),
     path("unique-areas/", UniqueAreas.as_view(), name="unique-areas"),
     path("inquery_create/", InquiryCreateView.as_view(), name="inquery_view"),
+    path("unique-country/", UniqueCountry.as_view(), name="inquery_view"),
     path('chatbot/', dialogflow_request, name='dialogflow_request'),
+    path('price-range/', GetPriceRanges.as_view(), name='price-range'),
 )

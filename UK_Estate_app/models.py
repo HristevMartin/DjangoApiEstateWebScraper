@@ -19,6 +19,7 @@ class Property(models.Model):
     right_image_url = models.TextField(blank=True, null=True)
     lattitude = models.FloatField(blank=True, null=True)
     longtitude = models.FloatField(blank=True, null=True)
+    country = models.CharField(max_length=255, blank=True, null=True)
 
     class Meta:
         db_table = "properties"  # Ensure this matches your MySQL table name

@@ -1,9 +1,11 @@
 from django.db.models import F
 from django.db.models import FloatField
+from django.db.models import Q
 from django.db.models.expressions import Func
-from django.db.models.functions import Cast, Coalesce
+from django.db.models.functions import Cast
 from rest_framework import generics, status
-from rest_framework.generics import ListCreateAPIView, ListAPIView
+from rest_framework.exceptions import ValidationError
+from rest_framework.generics import ListCreateAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
@@ -14,6 +16,7 @@ from UK_Estate_app.serializers import (
     PropertyDetailSerializer,
     InquirySerializer,
 )
+from UK_Estate_app.utils import range_price_buckets
 from .models import Property
 from .pagination import StandardResultsSetPagination
 
@@ -39,6 +42,14 @@ class Replace(Func):
     template = "%(function)s(%(expressions)s, ',', '')"
 
 
+from requests import head
+
+
+def is_image_url_valid(url):
+    response = head(url)
+    return response.status_code == 200
+
+
 class PropertyApiViewPagination(ListCreateAPIView):
     queryset = Property.objects.all()
     serializer_class = PropertySerializer
@@ -49,32 +60,45 @@ class PropertyApiViewPagination(ListCreateAPIView):
         sort_by = self.request.query_params.get("sort", "id")
         area_filter = self.request.query_params.get("area", None)
         sort_area = self.request.query_params.get("sortArea", None)
+        sort_country = self.request.query_params.get("country", None)
+        price_range = self.request.query_params.get("price", None)
 
         queryset = Property.objects.annotate(
             price_as_float=Cast(Replace("price_per_week"), FloatField())
         )
 
-        # queryset = Property.objects.annotate(
-        #     cleaned_price_per_week=Cast(Replace("price_per_week"), FloatField()),
-        #     cleaned_price=Cast(
-        #         Replace("price"),
-        #         FloatField()
-        #     ),
-        #     price_as_float = Coalesce('cleaned_price_per_week', 'cleaned_price')
-        # )
+        # Exclude properties with price_per_week less than 100
+        queryset = queryset.exclude(price_as_float__lt=100)
 
-        # Filter by area
         if area_filter:
             queryset = queryset.filter(address__icontains=area_filter)
 
         if sort_area:
             queryset = queryset.filter(address__icontains=sort_area)
 
+        if sort_country and sort_country.lower() != 'all':
+            queryset = queryset.filter(country__icontains=sort_country)
+
+            # Filtering by price range
+        if price_range:
+            try:
+                lower_bound, upper_bound = map(int, [x.strip().replace(" ", "") for x in price_range.split("-")])
+                queryset = queryset.filter(price_as_float__gte=lower_bound, price_as_float__lte=upper_bound)
+            except (ValueError, TypeError):
+                raise ValidationError("Invalid price range format.")
+
         # Sorting
         if "-" in sort_by:
             sort_order = F("price_as_float").desc(nulls_last=True)
         else:
             sort_order = F("price_as_float").asc(nulls_last=True)
+        # For chaining .exclude() methods
+
+        if sort_country == 'all' or sort_country == 'BG':
+            from django.db.models import Q
+
+            queryset = queryset.exclude(Q(price_per_week='0') | Q(price_per_week='1') | Q(price_per_week='2'))
+            queryset = queryset.order_by(sort_order)
 
         queryset = queryset.order_by(sort_order)
 
@@ -85,26 +109,31 @@ class ItemDetailView(generics.RetrieveAPIView):
     queryset = Property.objects.all()
     serializer_class = PropertyDetailSerializer
 
-#     overwrite the get method to see the results send to the client
+    #     overwrite the get method to see the results send to the client
     def get(self, request, *args, **kwargs):
         response = super().get(request, *args, **kwargs)
         print(response.data)
         return response
 
 
-from rest_framework.filters import OrderingFilter
-
-
-class SortAreas(ListAPIView):
-    queryset = Property.objects.all()
-    serializer_class = PropertySerializer
-    filter_backends = [OrderingFilter]
-    ordering_fields = ["area", "other_fields"]
-
-
 class UniqueAreas(APIView):
     def get(self, request, format=None):
-        unique_areas = Property.objects.values_list("address", flat=True).distinct()
+        # Get the country parameter from the query string
+        country = request.query_params.get('country', None)
+        search_area = request.query_params.get('searchArea', None)
+
+        # Filter the properties by country if a country is specified
+        if country:
+            properties = Property.objects.filter(country__iexact=country)
+        else:
+            properties = Property.objects.all()
+
+        if search_area:
+            properties = properties.filter(address__icontains=search_area)
+
+        # Get the unique areas from the filtered properties
+        unique_areas = properties.values_list("address", flat=True).distinct()
+
         return Response(unique_areas)
 
 
@@ -157,3 +186,41 @@ def dialogflow_request(request):
 
     except Exception as e:
         return Response(str(e), status=400)
+
+class UniqueCountry(APIView):
+    def get(self, request, format=None):
+
+        searchArea = self.request.query_params.get('searchArea')
+
+        if searchArea:
+            unique_areas = Property.objects.filter(address__icontains=searchArea).values_list("country",
+                                                                                              flat=True).distinct()
+        else:
+            unique_areas = Property.objects.values_list("country", flat=True).distinct()
+
+        return Response(unique_areas)
+
+
+class GetPriceRanges(APIView):
+    def get(self, request):
+        searchArea = self.request.query_params.get('searchArea')
+        sortCountry = self.request.query_params.get('sortCountry')
+
+        query = Q()
+
+        if searchArea:
+            query &= Q(address__icontains=searchArea)
+
+        if sortCountry:
+            query &= Q(country__icontains=sortCountry)
+
+        properties_in_area = Property.objects.filter(query)
+
+        price_ranges = properties_in_area.values_list("price_per_week", flat=True).distinct()
+
+        filtered_price_ranges = [x for x in price_ranges if x not in [str(x) for x in range(0, 101)]]
+
+        price_ranges = range_price_buckets(filtered_price_ranges)
+        sorted_price_ranges = sorted(price_ranges, key=lambda x: int(x.split('-')[0].replace(' ', '')))
+
+        return Response(sorted_price_ranges)
