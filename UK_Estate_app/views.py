@@ -3,10 +3,14 @@ from django.db.models import FloatField
 from django.db.models import Q
 from django.db.models.expressions import Func
 from django.db.models.functions import Cast
+from django.http import JsonResponse
+from google.cloud import dialogflow_v2 as dialogflow
 from rest_framework import generics, status
+from rest_framework.decorators import api_view
 from rest_framework.exceptions import ValidationError
 from rest_framework.generics import ListCreateAPIView
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from UK_Estate_app.models import Sample, Inquiry3
@@ -19,7 +23,7 @@ from UK_Estate_app.serializers import (
 from UK_Estate_app.utils import range_price_buckets
 from .models import Property
 from .pagination import StandardResultsSetPagination
-
+from requests import head
 
 class SampleApiView(ListCreateAPIView):
     queryset = Sample.objects.all()
@@ -40,9 +44,6 @@ class PropertyApiView(ListCreateAPIView):
 class Replace(Func):
     function = "REPLACE"
     template = "%(function)s(%(expressions)s, ',', '')"
-
-
-from requests import head
 
 
 def is_image_url_valid(url):
@@ -92,8 +93,6 @@ class PropertyApiViewPagination(ListCreateAPIView):
             sort_order = F("price_as_float").desc(nulls_last=True)
         else:
             sort_order = F("price_as_float").asc(nulls_last=True)
-        # For chaining .exclude() methods
-
         if sort_country == 'all' or sort_country == 'BG':
             from django.db.models import Q
 
@@ -109,7 +108,6 @@ class ItemDetailView(generics.RetrieveAPIView):
     queryset = Property.objects.all()
     serializer_class = PropertyDetailSerializer
 
-    #     overwrite the get method to see the results send to the client
     def get(self, request, *args, **kwargs):
         response = super().get(request, *args, **kwargs)
         print(response.data)
@@ -122,7 +120,6 @@ class UniqueAreas(APIView):
         country = request.query_params.get('country', None)
         search_area = request.query_params.get('searchArea', None)
 
-        # Filter the properties by country if a country is specified
         if country:
             properties = Property.objects.filter(country__iexact=country)
         else:
@@ -131,7 +128,6 @@ class UniqueAreas(APIView):
         if search_area:
             properties = properties.filter(address__icontains=search_area)
 
-        # Get the unique areas from the filtered properties
         unique_areas = properties.values_list("address", flat=True).distinct()
 
         return Response(unique_areas)
@@ -148,12 +144,6 @@ class InquiryCreateView(generics.CreateAPIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-from google.cloud import dialogflow_v2 as dialogflow
-from rest_framework.decorators import api_view
-from django.http import JsonResponse
-from rest_framework.response import Response
 
 
 @api_view(['POST'])
@@ -186,6 +176,7 @@ def dialogflow_request(request):
 
     except Exception as e:
         return Response(str(e), status=400)
+
 
 class UniqueCountry(APIView):
     def get(self, request, format=None):
