@@ -9,8 +9,12 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
+import logging
+import os
 from datetime import timedelta
 from pathlib import Path
+
+from UK_Estate_Agent_Official.utils import get_env_variable
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -24,7 +28,7 @@ SECRET_KEY = "django-insecure-y@fj8bc#5)u2j(py*6dt@v37pwnfmq13-lqyr2bzs66_w^yso7
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['django-estate-agent-dot-gym-pro-410823.uc.r.appspot.com', '127.0.0.1']
 
 # Application definition
 
@@ -100,22 +104,108 @@ WSGI_APPLICATION = "UK_Estate_Agent_Official.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.mysql",
-        "NAME": "estate_buildings_uk",
-        "USER": "root",
-        "PASSWORD": "pass",
-        "HOST": "localhost",
-        "PORT": "3306",
-    }
-}
+# Assuming get_env_variable is a function that retrieves environment variables.
+# def get_env_variable(var_name, default=None):
+#     """Retrieve environment variable or return a default value."""
+#     return os.environ.get(var_name, default)
+#
+# local = get_env_variable("DEBUG") == "True"
+# NAME = get_env_variable("NAME")
+# USER = get_env_variable("USER")
+# PASSWORD = get_env_variable("PASSWORD")
+# HOST = get_env_variable("HOST")
+# PORT = get_env_variable("PORT")
+# DB_SOCKET = get_env_variable("DB_SOCKET")
+#
+# if local:
+#     logging.info('Configuring for LOCAL MySQL')
+#     DATABASES = {
+#         "default": {
+#             "ENGINE": "django.db.backends.mysql",
+#             "NAME": NAME,
+#             "USER": USER,
+#             "PASSWORD": PASSWORD,
+#             "HOST": HOST,
+#             "PORT": PORT,
+#         }
+#     }
+# else:
+#     logging.info('SHOW ME THE CLOUD DATABASE NAME', NAME)
+#
+#     DATABASES = {
+#         'default': {
+#             "ENGINE": "django.db.backends.mysql",
+#             "NAME": 'estate_buildings_uk',
+#             "USER": 'root',
+#             "PASSWORD": '123456',
+#             "HOST": "127.0.0.1",
+#             "PORT": "3307",
+#             # "HOST": "/cloudsql/gym-pro-410823:europe-west1:estate-agent-db",
+#         }
+#     }
+#     #     'default': {
+#     #         "ENGINE": "django.db.backends.mysql",
+#     #         "NAME": NAME,
+#     #         "USER": USER,
+#     #         "PASSWORD": PASSWORD,
+#     #         "HOST": DB_SOCKET,
+#     #     }
+#     # }
 
-# Password validation
-# https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
+
+ENVIRONMENT = get_env_variable("ENVIRONMENT")
+NAME = get_env_variable("NAME")
+USER = get_env_variable("USER")
+PASSWORD = get_env_variable("PASSWORD")
+HOST = get_env_variable("HOST")
+PORT = get_env_variable("PORT")
+DB_SOCKET = get_env_variable("DB_SOCKET")
+
+if ENVIRONMENT == "development":
+    print('development')
+    logging.info('Configuring for LOCAL environment')
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.mysql",
+            "NAME": NAME,
+            "USER": USER,
+            "PASSWORD": PASSWORD,
+            "HOST": HOST,
+            "PORT": PORT,
+        }
+    }
+elif ENVIRONMENT == "production":
+    logging.info('Configuring for CLOUD environment')
+    print('local cloud')
+    if DB_SOCKET:
+        print('in here')
+        DATABASES = {
+            'default': {
+                "ENGINE": "django.db.backends.mysql",
+                "NAME": NAME,
+                "USER": USER,
+                "PASSWORD": PASSWORD,
+                "HOST": DB_SOCKET
+            }
+        }
+    else:
+        print('not here')
+        logging.info('Configuring for local cloud connection')
+
+        DATABASES = {
+            'default': {
+                "ENGINE": "django.db.backends.mysql",
+                "NAME": 'estate_buildings_uk',
+                "USER": 'root',
+                "PASSWORD": '123456',
+                "HOST": "127.0.0.1",
+                "PORT": '3307'
+            }
+        }
+else:
+    logging.error(f"Unknown ENVIRONMENT '{ENVIRONMENT}' specified.")
 
 AUTH_USER_MODEL = "auth_app.CustomUser"
-
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -131,7 +221,6 @@ AUTH_PASSWORD_VALIDATORS = [
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
-
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
@@ -158,4 +247,5 @@ CORS_ALLOW_ALL_ORIGINS = True
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
+    "https://gym-pro-410823.web.app",
 ]

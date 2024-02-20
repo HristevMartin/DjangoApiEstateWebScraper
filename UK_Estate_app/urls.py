@@ -1,7 +1,6 @@
 from django.urls import path
 
 from UK_Estate_app.views import (
-    SampleApiView,
     PropertyApiView,
     PropertyApiViewPagination,
     ItemDetailView,
@@ -10,7 +9,7 @@ from UK_Estate_app.views import (
 )
 
 urlpatterns = (
-    path("sample/", SampleApiView.as_view(), name="sample"),
+    # path("sample/", SampleApiView.as_view(), name="sample"),
     path("property2/", PropertyApiView.as_view(), name="property"),
     path(
         "property-pagination/",

@@ -1,12 +1,4 @@
 from django.db import models
-
-
-class Sample(models.Model):
-    name = models.CharField(max_length=255)
-    age = models.IntegerField()
-    address = models.CharField(max_length=255)
-
-
 class Property(models.Model):
     title = models.CharField(max_length=255, blank=True, null=True)
     price = models.CharField(max_length=255, blank=True, null=True)

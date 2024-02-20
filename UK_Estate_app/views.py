@@ -13,9 +13,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from UK_Estate_app.models import Sample, Inquiry3
+from UK_Estate_app.models import  Inquiry3
 from UK_Estate_app.serializers import (
-    SampleSerializer,
     PropertySerializer,
     PropertyDetailSerializer,
     InquirySerializer,
@@ -25,10 +24,10 @@ from .models import Property
 from .pagination import StandardResultsSetPagination
 from requests import head
 
-class SampleApiView(ListCreateAPIView):
-    queryset = Sample.objects.all()
-    serializer_class = SampleSerializer
-    # permission_classes = [IsAuthenticated]
+# class SampleApiView(ListCreateAPIView):
+#     queryset = Sample.objects.all()
+#     serializer_class = SampleSerializer
+#     # permission_classes = [IsAuthenticated]
 
 
 class PropertyApiView(ListCreateAPIView):
@@ -80,7 +79,7 @@ class PropertyApiViewPagination(ListCreateAPIView):
         if sort_country and sort_country.lower() != 'all':
             queryset = queryset.filter(country__icontains=sort_country)
 
-            # Filtering by price range
+        # Filtering by price range
         if price_range:
             try:
                 lower_bound, upper_bound = map(int, [x.strip().replace(" ", "") for x in price_range.split("-")])

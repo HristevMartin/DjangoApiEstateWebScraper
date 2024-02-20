@@ -60,7 +60,10 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
         except Exception as e:
             print("error", e)
-            raise InvalidToken(e.args[0])
+            return Response(
+                {"error": "Invalid email or password"}, status=status.HTTP_400_BAD_REQUEST
+            )
+            # raise InvalidToken(e.args[0])
 
         user = CustomUser.objects.get(email=request.data["email"])
 
