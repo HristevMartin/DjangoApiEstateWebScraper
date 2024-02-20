@@ -13,6 +13,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomUser
+        print('in the serilizer')
         fields = ["email","username", "password"]
         # extra_kwargs = {'password': {'write_only': True}}
 
@@ -22,11 +23,13 @@ class UserSerializer(serializers.ModelSerializer):
         self.fields["password2"] = serializers.CharField(write_only=True)
 
     def validate(self, data):
+        print('inside the validate')
         if data["password"] != data["password2"]:
             raise serializers.ValidationError("Passwords must match.")
         return data
 
     def create(self, validated_data):
+        print('creatinggg...')
         validated_data.pop("password2", None)
 
         username = validated_data.get("username") or None

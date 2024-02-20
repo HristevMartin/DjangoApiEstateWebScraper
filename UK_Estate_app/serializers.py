@@ -2,13 +2,13 @@ import json
 
 from rest_framework import serializers
 
-from UK_Estate_app.models import Sample, Property, Inquiry3
+from UK_Estate_app.models import  Property, Inquiry3
 
 
-class SampleSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Sample
-        fields = "__all__"
+# class SampleSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Sample
+#         fields = "__all__"
 
 
 class PropertySerializer(serializers.ModelSerializer):

@@ -1,0 +1,17 @@
+runtime: python39
+service: django-estate-agent
+
+entrypoint: gunicorn -b :$PORT UK_Estate_Agent_Official.wsgi:application
+
+env_variables:
+  DB_SOCKET: "/cloudsql/gym-pro-410823:europe-west1:estate-agent-db"
+  DEBUG: false
+  ENGINE: django.db.backends.mysql
+  NAME: estate_buildings_uk
+  USER: root
+  ENVIRONMENT: production
+  PASSWORD: 123456
+#  HOST: 35.205.52.30
+#  PORT: 3306
+
+
