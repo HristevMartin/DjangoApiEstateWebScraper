@@ -101,58 +101,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "UK_Estate_Agent_Official.wsgi.application"
 
-# Database
-# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
-
-# Assuming get_env_variable is a function that retrieves environment variables.
-# def get_env_variable(var_name, default=None):
-#     """Retrieve environment variable or return a default value."""
-#     return os.environ.get(var_name, default)
-#
-# local = get_env_variable("DEBUG") == "True"
-# NAME = get_env_variable("NAME")
-# USER = get_env_variable("USER")
-# PASSWORD = get_env_variable("PASSWORD")
-# HOST = get_env_variable("HOST")
-# PORT = get_env_variable("PORT")
-# DB_SOCKET = get_env_variable("DB_SOCKET")
-#
-# if local:
-#     logging.info('Configuring for LOCAL MySQL')
-#     DATABASES = {
-#         "default": {
-#             "ENGINE": "django.db.backends.mysql",
-#             "NAME": NAME,
-#             "USER": USER,
-#             "PASSWORD": PASSWORD,
-#             "HOST": HOST,
-#             "PORT": PORT,
-#         }
-#     }
-# else:
-#     logging.info('SHOW ME THE CLOUD DATABASE NAME', NAME)
-#
-#     DATABASES = {
-#         'default': {
-#             "ENGINE": "django.db.backends.mysql",
-#             "NAME": 'estate_buildings_uk',
-#             "USER": 'root',
-#             "PASSWORD": '123456',
-#             "HOST": "127.0.0.1",
-#             "PORT": "3307",
-#             # "HOST": "/cloudsql/gym-pro-410823:europe-west1:estate-agent-db",
-#         }
-#     }
-#     #     'default': {
-#     #         "ENGINE": "django.db.backends.mysql",
-#     #         "NAME": NAME,
-#     #         "USER": USER,
-#     #         "PASSWORD": PASSWORD,
-#     #         "HOST": DB_SOCKET,
-#     #     }
-#     # }
-
-
 ENVIRONMENT = get_env_variable("ENVIRONMENT")
 NAME = get_env_variable("NAME")
 USER = get_env_variable("USER")
@@ -243,7 +191,18 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-CORS_ALLOW_ALL_ORIGINS = True
+# CORS_ALLOW_ALL_ORIGINS = ['*']
+#
+# CORS_ALLOW_METHODS = [
+#     'DELETE',
+#     'GET',
+#     'OPTIONS',
+#     'PATCH',
+#     'POST',
+#     'PUT',
+# ]
+
+CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",

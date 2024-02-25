@@ -110,15 +110,13 @@ def google_auth(request):
         print("data_to_return", data_to_return)
 
         return Response(data_to_return, status=status.HTTP_200_OK)
-
-    # except ValueError:
-    #     # Invalid token
-    #     return Response({"error": "Google token validation failed"}, status=400)
     except Exception as ex:
         print('ex', ex)
 
 class LogoutAPIView(APIView):
     permission_classes = [IsAuthenticated]
+    # authentication_classes = []  # This will override the default setting for this view only
+    # permission_classes = []
 
     def delete(self, request):
         try:
@@ -128,15 +126,18 @@ class LogoutAPIView(APIView):
             expiration_date = timezone.make_aware(
                 datetime.fromtimestamp(decoded_token["exp"])
             )
-            BlacklistedToken.objects.create(
-                user=request.user, token=token, expires_at=expiration_date
-            )
+            if request.user.is_authenticated:
+                BlacklistedToken.objects.create(
+                    user=request.user, token=token, expires_at=expiration_date
+                )
 
-            return Response(
-                {"detail": "Successfully logged out."},
-                status=status.HTTP_204_NO_CONTENT,
-            )
+            print('show me the token', token)
+            print('successfully logged out')
+            return Response(status=status.HTTP_204_NO_CONTENT)
         except Exception as e:
+            import logging
+            logging.info('the reason for failing is', e)
+            print('the reason for failing is', e)
             return Response(
                 {"error": "Logout failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
