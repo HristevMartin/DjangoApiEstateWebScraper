@@ -46,6 +46,8 @@ INSTALLED_APPS = [
     "auth_app",
 ]
 
+ELASTICSEARCH_URL = 'http://localhost:9200'
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
