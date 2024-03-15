@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db.models import F
 from django.db.models import FloatField
 from django.db.models import Q
@@ -12,7 +13,8 @@ from rest_framework.generics import ListCreateAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
+from elasticsearch import Elasticsearch
+from UK_Estate_app.permissions import IsNotDefaultGroupUser
 from UK_Estate_app.models import  Inquiry3
 from UK_Estate_app.serializers import (
     PropertySerializer,
@@ -23,12 +25,6 @@ from UK_Estate_app.utils import range_price_buckets
 from .models import Property
 from .pagination import StandardResultsSetPagination
 from requests import head
-
-# class SampleApiView(ListCreateAPIView):
-#     queryset = Sample.objects.all()
-#     serializer_class = SampleSerializer
-#     # permission_classes = [IsAuthenticated]
-
 
 class PropertyApiView(ListCreateAPIView):
     queryset = Property.objects.all()
@@ -49,11 +45,12 @@ def is_image_url_valid(url):
     response = head(url)
     return response.status_code == 200
 
+es_client = Elasticsearch(settings.ELASTICSEARCH_URL)
 
 class PropertyApiViewPagination(ListCreateAPIView):
     queryset = Property.objects.all()
     serializer_class = PropertySerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsNotDefaultGroupUser]
     pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
@@ -101,7 +98,6 @@ class PropertyApiViewPagination(ListCreateAPIView):
         queryset = queryset.order_by(sort_order)
 
         return queryset
-
 
 class ItemDetailView(generics.RetrieveAPIView):
     queryset = Property.objects.all()
