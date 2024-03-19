@@ -1,3 +1,5 @@
+import time
+
 from django.conf import settings
 from django.db.models import F
 from django.db.models import FloatField
@@ -5,7 +7,9 @@ from django.db.models import Q
 from django.db.models.expressions import Func
 from django.db.models.functions import Cast
 from django.http import JsonResponse
+from elasticsearch import Elasticsearch
 from google.cloud import dialogflow_v2 as dialogflow
+from requests import head
 from rest_framework import generics, status
 from rest_framework.decorators import api_view
 from rest_framework.exceptions import ValidationError
@@ -13,9 +17,9 @@ from rest_framework.generics import ListCreateAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from elasticsearch import Elasticsearch
+
+from UK_Estate_app.models import Inquiry3
 from UK_Estate_app.permissions import IsNotDefaultGroupUser
-from UK_Estate_app.models import  Inquiry3
 from UK_Estate_app.serializers import (
     PropertySerializer,
     PropertyDetailSerializer,
@@ -24,7 +28,8 @@ from UK_Estate_app.serializers import (
 from UK_Estate_app.utils import range_price_buckets
 from .models import Property
 from .pagination import StandardResultsSetPagination
-from requests import head
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_control
 
 class PropertyApiView(ListCreateAPIView):
     queryset = Property.objects.all()
@@ -45,8 +50,10 @@ def is_image_url_valid(url):
     response = head(url)
     return response.status_code == 200
 
+
 es_client = Elasticsearch(settings.ELASTICSEARCH_URL)
 
+@method_decorator(cache_control(max_age=20), name='dispatch')
 class PropertyApiViewPagination(ListCreateAPIView):
     queryset = Property.objects.all()
     serializer_class = PropertySerializer
@@ -98,6 +105,7 @@ class PropertyApiViewPagination(ListCreateAPIView):
         queryset = queryset.order_by(sort_order)
 
         return queryset
+
 
 class ItemDetailView(generics.RetrieveAPIView):
     queryset = Property.objects.all()
