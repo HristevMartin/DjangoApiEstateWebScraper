@@ -28,7 +28,7 @@ SECRET_KEY = "django-insecure-y@fj8bc#5)u2j(py*6dt@v37pwnfmq13-lqyr2bzs66_w^yso7
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['django-estate-agent-dot-gym-pro-410823.uc.r.appspot.com', '127.0.0.1']
+ALLOWED_HOSTS = ['django-estate-agent-dot-gym-pro-410823.uc.r.appspot.com', '127.0.0.1', 'localhost']
 
 # Application definition
 
@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "UK_Estate_app",
+    "cacheops",
     "rest_framework_simplejwt",
     "auth_app",
 ]
@@ -209,4 +210,5 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "https://gym-pro-410823.web.app",
+    "http://localhost:8000"
 ]
