@@ -66,6 +66,7 @@ class PropertyApiViewPagination(ListCreateAPIView):
         sort_area = self.request.query_params.get("sortArea", None)
         sort_country = self.request.query_params.get("country", None)
         price_range = self.request.query_params.get("price", None)
+        print(price_range)
 
         queryset = Property.objects.annotate(
             price_as_float=Cast(Replace("price_per_week"), FloatField())
