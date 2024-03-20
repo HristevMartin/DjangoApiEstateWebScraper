@@ -42,7 +42,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "UK_Estate_app",
-    "cacheops",
+    'drf_yasg',
     "rest_framework_simplejwt",
     "auth_app",
 ]
