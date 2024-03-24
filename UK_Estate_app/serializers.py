@@ -1,6 +1,7 @@
 import json
 
 from rest_framework import serializers
+from rest_framework.viewsets import ModelViewSet
 
 from UK_Estate_app.models import  Property, Inquiry3
 
@@ -34,6 +35,8 @@ class PropertyDetailSerializer(serializers.ModelSerializer):
         model = Property
         fields = "__all__"
 
+class Sample(ModelViewSet):
+    pass
 
 from rest_framework import serializers
 

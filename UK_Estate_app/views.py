@@ -1,13 +1,14 @@
-import time
+import hashlib
 
-from django.conf import settings
+from django.core.cache import cache
 from django.db.models import F
 from django.db.models import FloatField
 from django.db.models import Q
 from django.db.models.expressions import Func
 from django.db.models.functions import Cast
 from django.http import JsonResponse
-from elasticsearch import Elasticsearch
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_control
 from google.cloud import dialogflow_v2 as dialogflow
 from requests import head
 from rest_framework import generics, status
@@ -28,8 +29,7 @@ from UK_Estate_app.serializers import (
 from UK_Estate_app.utils import range_price_buckets
 from .models import Property
 from .pagination import StandardResultsSetPagination
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import cache_control
+
 
 class PropertyApiView(ListCreateAPIView):
     queryset = Property.objects.all()
@@ -51,61 +51,77 @@ def is_image_url_valid(url):
     return response.status_code == 200
 
 
-es_client = Elasticsearch(settings.ELASTICSEARCH_URL)
-
-@method_decorator(cache_control(max_age=20), name='dispatch')
+@method_decorator(cache_control(max_age=100), name='dispatch')
 class PropertyApiViewPagination(ListCreateAPIView):
-    queryset = Property.objects.all()
     serializer_class = PropertySerializer
     permission_classes = [IsAuthenticated, IsNotDefaultGroupUser]
     pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
-        sort_by = self.request.query_params.get("sort", "id")
-        area_filter = self.request.query_params.get("area", None)
-        sort_area = self.request.query_params.get("sortArea", None)
-        sort_country = self.request.query_params.get("country", None)
-        price_range = self.request.query_params.get("price", None)
-        print(price_range)
+        # Generate a unique cache key based on the request's query parameters
+        cache_key = self.generate_cache_key()
+
+        # Attempt to fetch cached queryset
+        cached_queryset = cache.get(cache_key)
+        if cached_queryset is not None:
+            return cached_queryset
 
         queryset = Property.objects.annotate(
             price_as_float=Cast(Replace("price_per_week"), FloatField())
         )
 
-        # Exclude properties with price_per_week less than 100
+        queryset = self.apply_filters(queryset)
+
+        # Cache the queryset for future requests, with a timeout in seconds
+        cache.set(cache_key, queryset, 60 * 5)  # Cache for 5 minutes
+
+        return queryset
+
+    def apply_filters(self, queryset):
+        query_params = self.request.query_params
+        area_filter = query_params.get("area", None)
+        sort_area = query_params.get("sortArea", None)
+        sort_country = query_params.get("country", None)
+        price_range = query_params.get("price", None)
+        sort_by = query_params.get("sort", "id")
+
         queryset = queryset.exclude(price_as_float__lt=100)
 
         if area_filter:
             queryset = queryset.filter(address__icontains=area_filter)
-
         if sort_area:
             queryset = queryset.filter(address__icontains=sort_area)
-
         if sort_country and sort_country.lower() != 'all':
             queryset = queryset.filter(country__icontains=sort_country)
-
-        # Filtering by price range
         if price_range:
-            try:
-                lower_bound, upper_bound = map(int, [x.strip().replace(" ", "") for x in price_range.split("-")])
-                queryset = queryset.filter(price_as_float__gte=lower_bound, price_as_float__lte=upper_bound)
-            except (ValueError, TypeError):
-                raise ValidationError("Invalid price range format.")
+            queryset = self.filter_by_price_range(queryset, price_range)
+        queryset = self.apply_sorting(queryset, sort_by, sort_country)
 
-        # Sorting
+        return queryset
+
+    def filter_by_price_range(self, queryset, price_range):
+        try:
+            lower_bound, upper_bound = map(int, [x.strip().replace(" ", "") for x in price_range.split("-")])
+            return queryset.filter(price_as_float__gte=lower_bound, price_as_float__lte=upper_bound)
+        except (ValueError, TypeError):
+            raise ValidationError("Invalid price range format.")
+
+    def apply_sorting(self, queryset, sort_by, sort_country):
         if "-" in sort_by:
             sort_order = F("price_as_float").desc(nulls_last=True)
         else:
             sort_order = F("price_as_float").asc(nulls_last=True)
         if sort_country == 'all' or sort_country == 'BG':
-            from django.db.models import Q
-
             queryset = queryset.exclude(Q(price_per_week='0') | Q(price_per_week='1') | Q(price_per_week='2'))
-            queryset = queryset.order_by(sort_order)
+        return queryset.order_by(sort_order)
 
-        queryset = queryset.order_by(sort_order)
-
-        return queryset
+    def generate_cache_key(self):
+        """
+        Generate a unique cache key based on the request's query parameters.
+        """
+        params_string = "&".join([f"{key}={value}" for key, value in self.request.query_params.items()])
+        cache_key = hashlib.md5(params_string.encode('utf-8')).hexdigest()
+        return cache_key
 
 
 class ItemDetailView(generics.RetrieveAPIView):
